@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Tipografia: usamos pilhas de fontes do sistema para o projeto rodar offline.
+   Para usar fontes web, descomente em src/app/layout.tsx o bloco next/font.
+   --------------------------------------------------------------------------- */
+:root {
+  --bg: #0b0c15;
+  --ink: #eef1f7;
+  --muted: #7c839a;
+  --accent: #c8a253;
+  --accent-2: #4ec9d6;
+  --line: rgba(238, 241, 247, 0.14);
+  --panel: rgba(8, 10, 18, 0.82);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent2: var(--accent-2);
+  --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, ui-serif, Georgia, serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* { -webkit-tap-highlight-color: transparent; }
+
+html { background: var(--bg); color: var(--ink); }
+body { background: transparent; }
+
+body {
+  font-family: var(--font-sans);
+  overscroll-behavior-y: none;
+}
+
+::selection { background: var(--accent); color: #0b0c15; }
+
+/* trilho de rolagem discreto */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(238,241,247,0.16); border-radius: 99px; }
+
+@layer utilities {
+  .glass {
+    background: var(--panel);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid var(--line);
+  }
+  .hair { border-color: var(--line); }
+  .scrim {
+    background: radial-gradient(86% 60% at 20% 50%, rgba(6,7,13,0.95) 0%, rgba(6,7,13,0.70) 44%, rgba(6,7,13,0) 78%);
+  }
+  .scrim-soft {
+    background: linear-gradient(180deg, rgba(6,7,13,0.0) 0%, rgba(6,7,13,0.55) 60%, rgba(6,7,13,0.85) 100%);
+  }
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.02;
+  }
+  .mono { font-family: var(--font-mono); }
+  .fade-up { animation: fadeUp 900ms cubic-bezier(.16,1,.3,1) both; }
+  .vignette::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(120% 80% at 50% 40%, transparent 45%, rgba(4,5,10,0.55) 100%);
+    z-index: 5;
+  }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes grain {
+  0%,100% { transform: translate(0,0); }
+  25% { transform: translate(-2%, 1%); }
+  50% { transform: translate(1%, -2%); }
+  75% { transform: translate(2%, 2%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
