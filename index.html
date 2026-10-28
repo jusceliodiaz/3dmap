@@ -116,20 +116,6 @@ button, input, textarea { font: inherit; color: inherit; }
 .rail button:hover { color: var(--ink); }
 .rail button[aria-current="true"] { background: var(--ink); color: var(--bg); }
 
-/* ------------------------------ sobrevoo (legenda) ------------------------------ */
-.intro {
-  position: fixed; left: var(--edge); bottom: calc(var(--rail-h) + 8px);
-  width: min(420px, calc(100vw - 2 * var(--edge)));
-  padding: 20px 22px; border-radius: var(--r-lg);
-  transition: opacity .35s, transform .35s cubic-bezier(.2, .8, .2, 1);
-}
-.intro.is-hidden { opacity: 0; transform: translateY(12px); pointer-events: none; }
-.intro h2 { margin: 0 0 10px; font: 300 clamp(30px, 3.2vw, 42px)/1.04 var(--serif); letter-spacing: -0.015em; }
-.intro p { margin: 0; color: var(--ink-2); }
-.intro .hint { margin-top: 10px; font-size: 13px; color: var(--muted); }
-.player { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
-.player input { flex: 1; }
-
 /* ------------------------------ painel ------------------------------ */
 .drawer {
   position: fixed; top: var(--bar-h); right: var(--edge);
@@ -269,8 +255,6 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--brass); cursor
   }
   .drawer.is-closed { transform: translateY(24px); }
   .tab { top: auto; bottom: calc(var(--rail-h) + 4px); }
-  .intro { left: var(--edge); bottom: calc(var(--rail-h) + 4px); padding: 16px 18px; }
-  .intro h2 { font-size: 28px; }
   .loader { display: none; }
   .compass { top: calc(var(--bar-h) + 4px); bottom: auto; width: 44px; height: 44px; }
   .compass span { display: none; }
@@ -313,7 +297,6 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--brass); cursor
   <span id="loader-text"></span>
 </div>
 
-<section class="intro glass" id="intro" aria-labelledby="intro-title"></section>
 
 <aside class="drawer glass is-closed" id="drawer" aria-live="polite"></aside>
 <button type="button" class="tab glass is-hidden" id="tab" data-action="open-drawer"></button>
@@ -456,17 +439,7 @@ const dict = {
     chaptersLabel: "Capítulos",
     cta: "Agendar visita",
     loading: "Montando o terreno",
-    introTitle: "Viver acima da linha do horizonte",
-    introLead: (n, avg) =>
-      `${n} lotes ao redor de um lago particular em Itupeva, a 60 km de São Paulo. Lote médio de ${avg} m² e ${brand.greenArea} de área verde.`,
-    hint: {
-      fine: "Arraste para girar, use o botão direito (ou Shift) para mover e a roda do mouse ou a pinça do trackpad para aproximar. A bússola recentraliza a vista.",
-      touch: "Arraste com um dedo para girar e use dois dedos para aproximar ou mover. A bússola recentraliza a vista.",
-    },
     resetView: "Recentralizar a vista",
-    play: "Continuar sobrevoo",
-    pause: "Pausar sobrevoo",
-    flight: "Posição do sobrevoo",
     hidePanel: "Ocultar painel",
     showPanel: (c) => `Mostrar ${c.toLowerCase()}`,
     canvas: "Vista aérea 3D do loteamento Reserva Mirante. Arraste para girar, role para aproximar.",
@@ -516,17 +489,7 @@ const dict = {
     chaptersLabel: "Chapters",
     cta: "Book a visit",
     loading: "Building the terrain",
-    introTitle: "Living above the horizon line",
-    introLead: (n, avg) =>
-      `${n} lots around a private lake in Itupeva, 60 km from São Paulo. Average lot of ${avg} m² and ${brand.greenArea} green area.`,
-    hint: {
-      fine: "Drag to turn, use right click (or Shift) to move and the mouse wheel or a trackpad pinch to zoom. The compass recenters the view.",
-      touch: "Drag with one finger to turn and use two fingers to zoom or move. The compass recenters the view.",
-    },
     resetView: "Recenter the view",
-    play: "Resume flyover",
-    pause: "Pause flyover",
-    flight: "Flyover position",
     hidePanel: "Hide panel",
     showPanel: (c) => `Show ${c.toLowerCase()}`,
     canvas: "3D aerial view of the Reserva Mirante development. Drag to rotate, scroll to zoom.",
@@ -856,6 +819,8 @@ function setChapter(chapter) {
   setState({
     chapter,
     drawer: true,
+    // voltar ao Sobrevoo retoma o voo automático; qualquer gesto na cena o interrompe
+    playing: chapter === "view" ? !reduceMotion : state.playing,
     focusLot: chapter === "lotes" ? state.focusLot : null,
     focusAmen: chapter === "lazer" ? state.focusAmen : null,
     hoverLot: null,
@@ -894,25 +859,6 @@ function renderRail() {
   $("rail").innerHTML = CHAPTERS.map(
     (c) => `<button type="button" data-chapter="${c}" aria-current="${c === state.chapter}">${t().chapters[c]}</button>`
   ).join("");
-}
-
-function renderIntro() {
-  $("intro").innerHTML = `
-    <h2 id="intro-title">${t().introTitle}</h2>
-    <p>${t().introLead(summary.total, summary.avgArea)}</p>
-    <div class="player">
-      <button type="button" class="btn" data-action="toggle-play" id="play-btn">${state.playing ? t().pause : t().play}</button>
-      <input type="range" id="flight" min="0" max="1000" value="${Math.round(flight * 1000)}" aria-label="${t().flight}" />
-    </div>
-    <p class="hint">${t().hint[coarsePointer ? "touch" : "fine"]}</p>`;
-  $("flight").addEventListener("input", (e) => {
-    flight = Number(e.target.value) / 1000;
-    setState({ playing: false });
-  });
-}
-
-function updateIntroVisibility() {
-  $("intro").classList.toggle("is-hidden", state.chapter !== "view");
 }
 
 /* =============================================================================
@@ -1209,12 +1155,10 @@ let sceneApi = null;     // preenchido quando a cena 3D termina de montar
 subscribe((c) => {
   if (c.has("lang")) {
     renderChrome();
-    renderIntro();
     renderPins();
   }
   if (c.has("lang") || c.has("chapter")) {
     renderRail();
-    updateIntroVisibility();
   }
   if (["lang", "chapter", "focusLot", "focusAmen", "filter", "sent", "route"].some((k) => c.has(k))) renderDrawer();
   if (c.has("lang") || c.has("chapter") || c.has("drawer")) updateDrawerVisibility();
@@ -1223,10 +1167,6 @@ subscribe((c) => {
   if (c.has("hoverLot")) updateTip();
   if (c.has("focusAmen") || c.has("route")) updatePinState();
   if (c.has("bearing")) updateCompass();
-  if (c.has("playing")) {
-    const b = $("play-btn");
-    if (b) b.textContent = state.playing ? t().pause : t().play;
-  }
   if (c.has("filter") || c.has("minArea")) sceneApi?.applyFilter();
   if (c.has("ready") && state.ready) $("loader").classList.add("is-done");
 });
@@ -1246,7 +1186,6 @@ document.addEventListener("click", (e) => {
     if (state.route === d.route) sceneApi?.playRoute();
     setState({ route: d.route, drawer: true });
   } else if (d.action === "replay-route") sceneApi?.playRoute();
-  else if (d.action === "toggle-play") setState({ playing: !state.playing });
   else if (d.action === "reset-view") sceneApi?.resetView();
   else if (d.action === "close-drawer") setState({ drawer: false });
   else if (d.action === "open-drawer") setState({ drawer: true });
@@ -1277,8 +1216,6 @@ document.addEventListener("keydown", (e) => {
 /* primeira pintura da UI */
 renderChrome();
 renderRail();
-renderIntro();
-updateIntroVisibility();
 renderDrawer();
 updateDrawerVisibility();
 renderPins();
@@ -2074,8 +2011,6 @@ function buildScene(host) {
       flight += (flightDir * dt) / 75;
       if (flight > 1) { flight = 1; flightDir = -1; }
       if (flight < 0) { flight = 0; flightDir = 1; }
-      const f = $("flight");
-      if (f && document.activeElement !== f) f.value = Math.round(flight * 1000);
     }
 
     const focus = (st.focusLot && lotCenters.get(st.focusLot)) || (st.focusAmen && amenCenters[st.focusAmen]) || null;
@@ -2260,6 +2195,7 @@ function buildScene(host) {
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     vel.yaw = vel.pitch = 0;
     hoverReq = null;
+    if (state.playing) setState({ playing: false });
     if (state.hoverLot) setState({ hoverLot: null });
     if (pointers.size === 2) {
       const p = pinchInfo();
@@ -2344,6 +2280,7 @@ function buildScene(host) {
 
   canvas.addEventListener("wheel", (e) => {
     e.preventDefault();
+    if (state.playing) setState({ playing: false });
     // Chrome/Firefox: pinça do trackpad chega como wheel com ctrlKey e deltas pequenos
     user.zoom *= Math.exp(e.deltaY * (e.ctrlKey ? 0.01 : 0.0011));
     clampZoom();
