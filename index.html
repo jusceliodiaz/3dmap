@@ -243,22 +243,95 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--brass); cursor
 .compass span { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-2); }
 
 /* ------------------------------ mobile ------------------------------ */
+/* elementos só do mobile (seletor de capítulo e folha recolhível) */
+.switcher, .chapter-grid, .sheet-grip, .d-peek { display: none; }
+
+/* ------------------------------ mobile ------------------------------
+   O 3D é o conteúdo: navegação numa pílula compacta (‹ capítulo ›) com grade de capítulos sob demanda,
+   e o painel vira uma folha que abre recolhida (alça + título + resumo) e expande com toque ou arraste. */
 @media (max-width: 760px) {
-  :root { --edge: 12px; --bar-h: 60px; --rail-h: 64px; }
+  :root { --edge: 10px; --bar-h: 52px; --sheet-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .bar { height: calc(var(--bar-h) + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 12px 0; }
+  .brand { font-size: 17px; }
+  .brand small { display: none; }
   .bar .btn { display: none; }
-  .rail { left: var(--edge); right: var(--edge); transform: none; overflow-x: auto; scrollbar-width: none; }
-  .rail::-webkit-scrollbar { display: none; }
-  .rail button { padding: 0 14px; }
-  .drawer {
-    top: auto; left: var(--edge); right: var(--edge); bottom: calc(var(--rail-h) + 4px);
-    width: auto; max-height: 50dvh;
+  .lang button { min-width: 38px; min-height: 32px; padding: 0 8px; font-size: 12px; }
+  .rail { display: none; }
+
+  .switcher {
+    position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 999px;
   }
-  .drawer.is-closed { transform: translateY(24px); }
-  .tab { top: auto; bottom: calc(var(--rail-h) + 4px); }
+  .switcher button {
+    display: grid; place-items: center; min-width: 44px; height: 44px; padding: 0;
+    border: 0; border-radius: 999px; background: none; color: var(--ink-2); cursor: pointer;
+  }
+  .switcher button:active { background: var(--panel-hi); }
+  .switcher svg { width: 18px; height: 18px; }
+  .switcher .sw-current { min-width: 128px; padding: 0 12px; gap: 1px; line-height: 1.15; color: var(--ink); font-size: 14px; font-weight: 500; }
+  .sw-current small { font-size: 12px; font-weight: 400; color: var(--muted); }
+
+  .chapter-grid:not([hidden]) {
+    position: fixed; left: 50%; bottom: calc(64px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+    width: min(320px, calc(100vw - 20px)); padding: 6px; border-radius: 18px; z-index: 2;
+    animation: grid-in .18s ease-out;
+  }
+  .chapter-grid button {
+    min-height: 44px; border: 0; border-radius: 12px; background: none;
+    color: var(--ink-2); font-size: 14px; cursor: pointer;
+  }
+  .chapter-grid button[aria-current="true"] { background: var(--ink); color: var(--bg); }
+
+  .drawer {
+    top: auto; left: var(--edge); right: var(--edge); bottom: var(--sheet-bottom);
+    width: auto; max-height: 42dvh; padding: 0 16px 16px; border-radius: 20px;
+    transition: max-height .32s cubic-bezier(.2, .8, .2, 1), opacity .25s, transform .3s;
+    display: flex; flex-direction: column;
+  }
+  .drawer > * { flex-shrink: 0; }
+  /* no celular, a ficha do lote vem logo abaixo do título (antes dos filtros) */
+  .sheet-grip { order: -3; }
+  .d-head { order: -2; }
+  .drawer > .card:not(.card-empty) { order: -1; margin: 10px 0 4px; }
+  .drawer.is-peek { max-height: 80px; overflow: hidden; }
+  .drawer.is-peek > :not(.d-head):not(.sheet-grip) { display: none; }
+  .drawer.is-closed { transform: translateY(16px); }
+  .sheet-grip {
+    display: block; position: relative; width: 100%; height: 20px; padding: 0;
+    border: 0; background: none; cursor: grab; touch-action: none;
+  }
+  .sheet-grip::before {
+    content: ""; position: absolute; left: 50%; top: 8px; width: 36px; height: 4px; margin-left: -18px;
+    border-radius: 2px; background: rgba(238, 242, 244, 0.35);
+  }
+  .d-head { align-items: center; }
+  .d-titles { flex: 1; min-width: 0; cursor: pointer; }
+  .d-title { font-size: 19px; }
+  .d-peek { display: block; margin: 2px 0 0; font-size: 13px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .drawer:not(.is-peek) .d-peek { display: none; }
+  .icon-btn { margin: 0 -8px 0 0; }
+  .d-lead { margin: 6px 0 12px; font-size: 13px; }
+  .field { margin-top: 12px; }
+  .card { margin-top: 12px; padding: 12px; }
+  .card h3 { font-size: 24px; }
+  .facts { gap: 8px 12px; margin: 12px 0; }
+  .facts dd { font-size: 15px; }
+  .row { min-height: 46px; }
+  .row-t { font-size: 14px; }
+  .readouts { margin-top: 14px; padding-top: 12px; }
+  .readouts dd { font-size: 18px; }
+  .sunmap { max-width: 150px; margin-top: 12px; }
+
+  .tab { top: auto; left: 50%; right: auto; bottom: var(--sheet-bottom); transform: translateX(-50%); font-size: 13px; }
   .loader { display: none; }
-  .compass { top: calc(var(--bar-h) + 4px); bottom: auto; width: 44px; height: 44px; }
+  .compass { top: calc(var(--bar-h) + env(safe-area-inset-top) + 6px); bottom: auto; right: var(--edge); width: 44px; height: 44px; }
   .compass span { display: none; }
+  .pin-label { padding: 4px 9px; font-size: 12px; }
+  .pin-stem { height: 16px; }
+  .tip { font-size: 12px; }
 }
+@keyframes grid-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition-duration: .01ms !important; animation-duration: .01ms !important; }
@@ -302,6 +375,8 @@ input[type="range"] { width: 100%; margin: 0; accent-color: var(--brass); cursor
 <button type="button" class="tab glass is-hidden" id="tab" data-action="open-drawer"></button>
 
 <nav class="rail glass" id="rail" aria-label="Capítulos"></nav>
+<nav class="switcher glass" id="switcher" aria-label="Capítulos"></nav>
+<div class="chapter-grid glass" id="chapter-grid" hidden></div>
 
 <button type="button" class="compass glass" id="compass" data-action="reset-view">
   <svg viewBox="0 0 100 100" aria-hidden="true">
@@ -441,6 +516,16 @@ const dict = {
     loading: "Montando o terreno",
     resetView: "Recentralizar a vista",
     hidePanel: "Ocultar painel",
+    expandPanel: "Expandir painel",
+    collapsePanel: "Recolher painel",
+    prevChapter: "Capítulo anterior",
+    nextChapter: "Próximo capítulo",
+    chapterOf: (i, n) => `${i} de ${n}`,
+    peek: {
+      lotes: (n) => `${n} disponíveis. Toque num lote no terreno.`,
+      lazer: (n) => `${n} espaços. Toque num para ir até ele.`,
+      visita: "No terreno ou numa sessão remota.",
+    },
     showPanel: (c) => `Mostrar ${c.toLowerCase()}`,
     canvas: "Vista aérea 3D do loteamento Reserva Mirante. Arraste para girar, role para aproximar.",
     lots: {
@@ -491,6 +576,16 @@ const dict = {
     loading: "Building the terrain",
     resetView: "Recenter the view",
     hidePanel: "Hide panel",
+    expandPanel: "Expand panel",
+    collapsePanel: "Collapse panel",
+    prevChapter: "Previous chapter",
+    nextChapter: "Next chapter",
+    chapterOf: (i, n) => `${i} of ${n}`,
+    peek: {
+      lotes: (n) => `${n} available. Tap a lot on the terrain.`,
+      lazer: (n) => `${n} spaces. Tap one to fly there.`,
+      visita: "On site or in a remote session.",
+    },
     showPanel: (c) => `Show ${c.toLowerCase()}`,
     canvas: "3D aerial view of the Reserva Mirante development. Drag to rotate, scroll to zoom.",
     lots: {
@@ -787,6 +882,8 @@ const state = {
   focusAmen: null,
   hoverLot: null,
   route: routes[0].id,  // rota selecionada no capítulo Rotas
+  sheetFull: false,     // mobile: painel expandido (senão fica recolhido, só alça + resumo)
+  chapterMenu: false,   // mobile: grade de capítulos aberta
   filter: "all",
   minArea: summary.minArea,
   month: 2,             // 0..11
@@ -824,6 +921,8 @@ function setChapter(chapter) {
     focusLot: chapter === "lotes" ? state.focusLot : null,
     focusAmen: chapter === "lazer" ? state.focusAmen : null,
     hoverLot: null,
+    sheetFull: false,
+    chapterMenu: false,
   });
   history.replaceState(null, "", chapter === "view" ? location.pathname + location.search : `#${chapter}`);
 }
@@ -861,13 +960,78 @@ function renderRail() {
   ).join("");
 }
 
+const CHEV = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="${d}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+/** Mobile: pílula ‹ capítulo › e grade 3×2 com todos os capítulos. */
+function renderSwitcher() {
+  const i = CHAPTERS.indexOf(state.chapter);
+  $("switcher").innerHTML = `
+    <button type="button" data-action="prev-chapter" aria-label="${t().prevChapter}">${CHEV("M15 6l-6 6 6 6")}</button>
+    <button type="button" class="sw-current" data-action="toggle-chapters" aria-expanded="${state.chapterMenu}" aria-controls="chapter-grid">
+      <span>${t().chapters[state.chapter]}</span><small>${t().chapterOf(i + 1, CHAPTERS.length)}</small>
+    </button>
+    <button type="button" data-action="next-chapter" aria-label="${t().nextChapter}">${CHEV("M9 6l6 6-6 6")}</button>`;
+  const grid = $("chapter-grid");
+  grid.hidden = !state.chapterMenu;
+  grid.innerHTML = CHAPTERS.map(
+    (c) => `<button type="button" data-chapter="${c}" aria-current="${c === state.chapter}">${t().chapters[c]}</button>`
+  ).join("");
+}
+
+/* alça da folha (mobile): arrastar para cima expande; para baixo recolhe e, recolhida, fecha */
+let gripY = null;
+let gripSwiped = false;
+document.addEventListener("pointerdown", (e) => {
+  if (e.target.closest(".sheet-grip, .d-titles")) {
+    gripY = e.clientY;
+    gripSwiped = false;
+  }
+});
+document.addEventListener("pointerup", (e) => {
+  if (gripY === null) return;
+  const dy = e.clientY - gripY;
+  gripY = null;
+  if (Math.abs(dy) < 20) return;
+  gripSwiped = true;
+  if (dy < 0) setState({ sheetFull: true });
+  else if (state.sheetFull) setState({ sheetFull: false });
+  else setState({ drawer: false });
+});
+
 /* =============================================================================
    UI — painel do capítulo
    ============================================================================= */
+const fmtHour = (h) => `${String(Math.floor(h)).padStart(2, "0")}:${String(Math.round((h % 1) * 60)).padStart(2, "0")}`;
+
+/** Resumo de uma linha mostrado com o painel recolhido no mobile. */
+function peekText() {
+  const lang = state.lang;
+  if (state.chapter === "lotes") {
+    const l = state.focusLot && lotById.get(state.focusLot);
+    return l ? `${t().lots.lot} ${l.id}, ${l.area} m², ${t().lots[l.status].toLowerCase()}` : t().peek.lotes(summary.available);
+  }
+  if (state.chapter === "lazer") {
+    const a = amenities.find((x) => x.id === state.focusAmen);
+    return a ? `${a.title[lang]}, ${a.meta[lang]}` : t().peek.lazer(amenities.length);
+  }
+  if (state.chapter === "rotas") {
+    const r = routes.find((x) => x.id === state.route);
+    return `${r.title[lang]}, ${t().routes.meta(r)}`;
+  }
+  if (state.chapter === "sol") return `${MONTHS[lang][state.month]}, ${fmtHour(state.hour)}`;
+  if (state.chapter === "visita") return t().peek.visita;
+  return "";
+}
+
 function drawerHead(title) {
   return `
+    <button type="button" class="sheet-grip" data-action="toggle-sheet" aria-expanded="${state.sheetFull}"
+      aria-label="${state.sheetFull ? t().collapsePanel : t().expandPanel}"></button>
     <div class="d-head">
-      <h2 class="d-title" id="drawer-title">${title}</h2>
+      <div class="d-titles" data-action="toggle-sheet">
+        <h2 class="d-title" id="drawer-title">${title}</h2>
+        <p class="d-peek" id="drawer-peek">${peekText()}</p>
+      </div>
       <button type="button" class="icon-btn" data-action="close-drawer" aria-label="${t().hidePanel}">${CLOSE_ICON}</button>
     </div>`;
 }
@@ -1056,7 +1220,14 @@ function renderDrawer() {
 
 function updateDrawerVisibility() {
   const has = Boolean(DRAWERS[state.chapter]);
-  $("drawer").classList.toggle("is-closed", !(has && state.drawer));
+  const drawer = $("drawer");
+  drawer.classList.toggle("is-closed", !(has && state.drawer));
+  drawer.classList.toggle("is-peek", !state.sheetFull);
+  const grip = drawer.querySelector(".sheet-grip");
+  if (grip) {
+    grip.setAttribute("aria-expanded", String(state.sheetFull));
+    grip.setAttribute("aria-label", state.sheetFull ? t().collapsePanel : t().expandPanel);
+  }
   const tab = $("tab");
   tab.classList.toggle("is-hidden", !(has && !state.drawer));
   tab.textContent = has ? t().showPanel(t().chapters[state.chapter]) : "";
@@ -1075,7 +1246,9 @@ function updateSolar() {
   const above = now.altitude > 0;
   const [sx, sy] = project(now.azimuth, Math.max(now.altitude, 0));
   $("sol-month").textContent = MONTHS[state.lang][month];
-  $("sol-hour").textContent = `${String(Math.floor(hour)).padStart(2, "0")}:${String(Math.round((hour % 1) * 60)).padStart(2, "0")}`;
+  $("sol-hour").textContent = fmtHour(hour);
+  const peek = $("drawer-peek");
+  if (peek) peek.textContent = peekText();
   $("sol-az").textContent = `${Math.round(now.azimuth)}°`;
   $("sol-alt").textContent = `${Math.round(now.altitude)}°`;
   $("sol-dir").textContent = above ? OCTANT_LABELS[state.lang][Math.round(now.azimuth / 45) % 8] : "—";
@@ -1157,11 +1330,12 @@ subscribe((c) => {
     renderChrome();
     renderPins();
   }
-  if (c.has("lang") || c.has("chapter")) {
+  if (c.has("lang") || c.has("chapter") || c.has("chapterMenu")) {
     renderRail();
+    renderSwitcher();
   }
   if (["lang", "chapter", "focusLot", "focusAmen", "filter", "sent", "route"].some((k) => c.has(k))) renderDrawer();
-  if (c.has("lang") || c.has("chapter") || c.has("drawer")) updateDrawerVisibility();
+  if (c.has("lang") || c.has("chapter") || c.has("drawer") || c.has("sheetFull")) updateDrawerVisibility();
   if (c.has("minArea")) updateLotFilterReadout();
   if (c.has("month") || c.has("hour")) updateSolar();
   if (c.has("hoverLot")) updateTip();
@@ -1172,6 +1346,8 @@ subscribe((c) => {
 });
 
 document.addEventListener("click", (e) => {
+  // grade de capítulos (mobile) fecha ao tocar fora dela
+  if (state.chapterMenu && !e.target.closest("#chapter-grid, #switcher")) setState({ chapterMenu: false });
   const el = e.target.closest("[data-lang],[data-chapter],[data-filter],[data-amen],[data-route],[data-action]");
   if (!el) return;
   const d = el.dataset;
@@ -1180,12 +1356,20 @@ document.addEventListener("click", (e) => {
   else if (d.filter) setState({ filter: d.filter });
   else if (d.amen) {
     if (state.chapter !== "lazer") setChapter("lazer");
-    setState({ focusAmen: state.focusAmen === d.amen ? null : d.amen, drawer: true });
+    setState({ focusAmen: state.focusAmen === d.amen ? null : d.amen, drawer: true, sheetFull: true });
   } else if (d.route) {
     if (state.chapter !== "rotas") setChapter("rotas");
     if (state.route === d.route) sceneApi?.playRoute();
     setState({ route: d.route, drawer: true });
   } else if (d.action === "replay-route") sceneApi?.playRoute();
+  else if (d.action === "toggle-sheet") {
+    if (gripSwiped) gripSwiped = false;   // o arraste já tratou
+    else setState({ sheetFull: !state.sheetFull });
+  } else if (d.action === "toggle-chapters") setState({ chapterMenu: !state.chapterMenu });
+  else if (d.action === "prev-chapter" || d.action === "next-chapter") {
+    const i = CHAPTERS.indexOf(state.chapter) + (d.action === "next-chapter" ? 1 : -1);
+    setChapter(CHAPTERS[(i + CHAPTERS.length) % CHAPTERS.length]);
+  }
   else if (d.action === "reset-view") sceneApi?.resetView();
   else if (d.action === "close-drawer") setState({ drawer: false });
   else if (d.action === "open-drawer") setState({ drawer: true });
@@ -1204,7 +1388,8 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (e.key !== "Escape") return;
-  if (state.focusLot || state.focusAmen) setState({ focusLot: null, focusAmen: null });
+  if (state.chapterMenu) setState({ chapterMenu: false });
+  else if (state.focusLot || state.focusAmen) setState({ focusLot: null, focusAmen: null });
   else if (state.drawer && DRAWERS[state.chapter]) setState({ drawer: false });
 });
 
@@ -1216,6 +1401,7 @@ document.addEventListener("keydown", (e) => {
 /* primeira pintura da UI */
 renderChrome();
 renderRail();
+renderSwitcher();
 renderDrawer();
 updateDrawerVisibility();
 renderPins();
@@ -2090,7 +2276,8 @@ function buildScene(host) {
     const narrow = host.clientWidth <= 760;
     const ko = damp(5, dt);
     viewShift.x += ((panelOpen && !narrow ? 190 : 0) - viewShift.x) * ko;
-    viewShift.y += ((panelOpen && narrow ? Math.min(host.clientHeight * 0.25, 220) : 0) - viewShift.y) * ko;
+    // mobile: folha recolhida quase não cobre a cena; expandida, sobe o centro óptico
+    viewShift.y += ((panelOpen && narrow ? (st.sheetFull ? Math.min(host.clientHeight * 0.22, 200) : 36) : 0) - viewShift.y) * ko;
     camera.setViewOffset(host.clientWidth, host.clientHeight, viewShift.x, viewShift.y, host.clientWidth, host.clientHeight);
 
     // sombra acompanha o enquadramento: frustum do tamanho da vista (nítida de perto, cobre a cidade de longe),
@@ -2265,7 +2452,7 @@ function buildScene(host) {
     // clique sem arrastar, no capítulo Lotes, seleciona o lote
     if (e.type === "pointerup" && gesture === "orbit" && moved < 6 && state.chapter === "lotes") {
       const l = lotAtScreen(e.clientX, e.clientY);
-      if (l) setState({ focusLot: state.focusLot === l.id ? null : l.id, drawer: true });
+      if (l) setState({ focusLot: state.focusLot === l.id ? null : l.id, drawer: true, sheetFull: true });
     }
     // soltou parado: sem inércia
     if (performance.now() - lastMoveT > 90) vel.yaw = vel.pitch = 0;
