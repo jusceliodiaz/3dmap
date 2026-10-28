@@ -1509,16 +1509,21 @@ function buildScene(host) {
          c = mix(c, soil, smoothstep(0.32, 0.55, slope) * (0.35 + 0.4 * fine));
          c = mix(c, rock, smoothstep(0.5, 0.8, slope));
          c = mix(c, urban * (0.9 + 0.2 * fine), vMask.x * 0.9);
-         // cinturão de mata em volta da foto, para a imagem não parecer um recorte no campo
+         // foto: plano (x, -z) -> uv; norte (yMax) no topo da imagem
          vec2 pp = vec2(vWp.x, -vWp.z);
-         vec2 outside = max(max(uExtent.xy - pp, pp - uExtent.zw), 0.0);
-         float belt = 1.0 - smoothstep(200.0, 1300.0, length(outside) + (big - 0.5) * 700.0);
-         vec3 canopy = vec3(0.022, 0.042, 0.016) * (0.7 + 0.6 * fine);
-         c = mix(c, canopy, belt * (1.0 - vMask.x));
-         // foto: plano (x, -z) -> uv; norte (yMax) no topo da imagem; borda quebrada por ruído
          vec2 puv = (pp - uExtent.xy) / (uExtent.zw - uExtent.xy);
-         float edge = clamp((vMask.y - 0.5) * 2.4 + (big - 0.5) * 1.2 + 0.5, 0.0, 1.0);
-         c = mix(c, texture2D(uPhoto, puv).rgb, edge * step(0.001, vMask.y));
+         // fora da foto a mata continua com a cor da própria foto (borda esticada e borrada),
+         // manchada por ruído e rareando com a distância, sem contorno reto
+         float blob = tn(pp * 0.0016 + 3.1) * 0.6 + tn(pp * 0.006) * 0.4;
+         vec2 outside = max(max(uExtent.xy - pp, pp - uExtent.zw), 0.0);
+         float belt = 1.0 - smoothstep(150.0, 1600.0, length(outside) + (blob - 0.5) * 1100.0);
+         vec3 edgeColor = texture2D(uPhoto, clamp(puv, 0.004, 0.996), 6.0).rgb;
+         vec3 canopy = edgeColor * (0.72 + 0.56 * fine) * (0.85 + 0.3 * blob);
+         c = mix(c, canopy, belt * (1.0 - vMask.x));
+         // a foto entra por uma borda larga e irregular (não pelo retângulo)
+         vec2 inside = min(pp - uExtent.xy, uExtent.zw - pp);
+         float edge = smoothstep(0.0, 480.0, min(inside.x, inside.y) + (blob - 0.5) * 560.0);
+         c = mix(c, texture2D(uPhoto, puv).rgb, edge);
          diffuseColor.rgb = c;`
       );
   };
@@ -1638,8 +1643,15 @@ function buildScene(host) {
     false
   );
   const TREES = 13000;
-  const PHOTO_TREES = 5200;   // primeiro as da mata da foto, depois as do entorno
-  const [fx0, fy0, fx1, fy1] = MP.extent;
+  /** Densidade de mata 0..1: manchas orgânicas (ruído) que rareiam com a distância do loteamento.
+      Não conhece o retângulo da foto: a floresta da imagem continua para fora sem contorno. */
+  function forestDensity(px, py) {
+    const warp = fbm(px * 0.0011 + 11.3, py * 0.0011 - 4.7) * 900;
+    const reach = 1 - smoothstep(900, 3300, Math.hypot(px, py) + warp);
+    const groves = smoothstep(-0.25, 0.35, fbm(px * 0.0024 + 7.1, py * 0.0024 + 1.9));
+    const clearings = smoothstep(0.15, 0.45, fbm(px * 0.006 - 3.3, py * 0.006 + 8.8));
+    return clamp01(reach * (0.35 + 0.65 * groves) * (1 - 0.7 * clearings));
+  }
   const treeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.88, metalness: 0 });
   const treeKinds = [coniferGeo, broadGeo].map((g) => {
     const m = new THREE.InstancedMesh(g, treeMat, TREES);
@@ -1655,22 +1667,15 @@ function buildScene(host) {
     let guard = 0;
     while (placed < TREES && guard < TREES * 40) {
       guard++;
-      let px, py, s;
-      if (placed < PHOTO_TREES) {
-        // sobre a foto: árvores 3D só onde a imagem mostra copa (mata nativa, copas maiores)
-        px = mix(fx0, fx1, Math.random());
-        py = mix(fy0, fy1, Math.random());
-        if (forestAt(px, py) < 0.55 || devAt(px, py) > 0.05) continue;
-        s = 1.1 + Math.random() * 0.9;
-      } else {
-        // entorno fora da foto: mata densa colada na imagem, rareando até a borda do mapa
-        px = mix(-3400, 3400, Math.random());
-        py = mix(-3400, 3400, Math.random());
-        const out = Math.hypot(Math.max(fx0 - px, px - fx1, 0), Math.max(fy0 - py, py - fy1, 0));
-        if (photoMask(px, py) > 0.3 || cityMask(px, py) > 0.15) continue;
-        if (Math.random() > 0.12 + 0.88 * (1 - smoothstep(150, 1300, out))) continue;
-        s = 0.65 + Math.random() * 0.9;
-      }
+      const px = mix(-3600, 3600, Math.random());
+      const py = mix(-3600, 3600, Math.random());
+      // fora do loteamento, da cidade e das áreas abertas da foto (lago, gramados, vias)
+      if (devAt(px, py) > 0.05 || cityMask(px, py) > 0.15) continue;
+      const inPhoto = photoMask(px, py);
+      if (inPhoto > 0.5 && forestAt(px, py) < 0.45) continue;
+      if (Math.random() > forestDensity(px, py)) continue;
+      // copas maiores perto da mata nativa, menores e mais variadas longe dela
+      const s = mix(0.7, 1.15, forestDensity(px, py)) + Math.random() * 0.8;
       const h = heightAt(px, py);
       dummy.position.set(wx(px), h - 0.3, wz(py));
       dummy.scale.set(s, s * (0.8 + Math.random() * 0.6), s);
